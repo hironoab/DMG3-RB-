@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫内RB過剰数計算ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+            background: #f0f4f8;
+            color: #1a202c;
+            line-height: 1.5;
+            padding: 12px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #2d3748;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #2b6cb0;
+            margin-bottom: 8px;
+            padding: 5px 10px;
+            background: #ebf8ff;
+            border-radius: 4px;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .grid-row .card {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .grid-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            margin-bottom: 6px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #4a5568;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 6px 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        .input-group input[type="number"]:focus {
+            outline: none;
+            border-color: #3182ce;
+        }
+
+        .inbound-calc {
+            margin-top: 8px;
+        }
+
+        .inbound-subtotal {
+            margin-top: 6px;
+            padding: 4px 10px;
+            background: #edf2f7;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4a5568;
+            text-align: right;
+        }
+
+        .subtotal {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #ebf8ff;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #2b6cb0;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+
+        .csv-upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .csv-upload-area:hover,
+        .csv-upload-area.dragover {
+            border-color: #3182ce;
+            background: #ebf8ff;
+        }
+
+        .csv-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .csv-upload-area .upload-icon {
+            font-size: 1.2rem;
+            margin-bottom: 4px;
+            display: inline;
+        }
+
+        .csv-upload-area .upload-text {
+            color: #4a5568;
+            font-size: 0.8rem;
+            display: inline;
+        }
+
+        .csv-upload-area .upload-hint {
+            color: #a0aec0;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        .csv-format-info {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .csv-format-info summary {
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .csv-format-info pre {
+            margin-top: 4px;
+            padding: 8px;
+            background: #edf2f7;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            overflow-x: auto;
+            color: #2d3748;
+        }
+
+        .csv-result {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #f0fff4;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .csv-result.show {
+            display: block;
+        }
+
+        .csv-result .csv-total {
+            font-weight: 600;
+            color: #276749;
+        }
+
+        .csv-result table {
+            width: 100%;
+            margin-top: 4px;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+        }
+
+        .csv-result table th,
+        .csv-result table td {
+            padding: 3px 6px;
+            text-align: left;
+            border-bottom: 1px solid #c6f6d5;
+        }
+
+        .csv-result table th {
+            color: #276749;
+            font-weight: 600;
+        }
+
+        .note {
+            font-size: 0.7rem;
+            color: #718096;
+            margin-top: 2px;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 12px;
+            background: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-bottom: 10px;
+        }
+
+        .calculate-btn:hover {
+            background: #2c5282;
+        }
+
+        .calculate-btn:active {
+            transform: scale(0.98);
+        }
+
+        .result-card {
+            display: none;
+            padding: 20px 28px;
+            font-size: 1rem;
+        }
+
+        .result-card.show {
+            display: block;
+        }
+
+        .result-section {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #3182ce;
+        }
+
+        .result-section h3 {
+            font-size: 0.9rem;
+            color: #2b6cb0;
+            margin-bottom: 8px;
+        }
+
+        .result-section .formula-line {
+            font-size: 0.85rem;
+            color: #2d3748;
+            line-height: 2;
+        }
+
+        .result-value {
+            text-align: center;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .result-value.safe {
+            background: #f0fff4;
+            border: 2px solid #68d391;
+        }
+
+        .result-value.warning {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+        }
+
+        .result-value .result-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+
+        .result-value.safe .result-number {
+            color: #276749;
+        }
+
+        .result-value.warning .result-number {
+            color: #c53030;
+        }
+
+        .result-value .result-label {
+            font-size: 0.95rem;
+            color: #4a5568;
+            margin-top: 4px;
+        }
+
+        .recommendation {
+            margin-top: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .recommendation.increase {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            color: #c53030;
+        }
+
+        .recommendation.ok {
+            background: #f0fff4;
+            border: 2px solid #68d391;
+            color: #276749;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 12px;
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 12px;
+        }
+
+        .reset-btn:hover {
+            background: #cbd5e0;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .result-value .result-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏭 庫内RB過剰数計算ツール<br><span style="font-size:0.7rem; color:#718096;">基準時間: 当日14:00 ／ 確認範囲: 14:00〜翌日14:00</span>
+        </h1>
+
+        <!-- Result (top of page) -->
+        <div class="card result-card" id="result-card">
+            <div class="result-value" id="result-value-main">
+                <div class="result-number" id="result-number-main">0</div>
+                <div class="result-label" id="result-label-main">過剰RB本数（バッファ80本差引後）</div>
+            </div>
+            <div class="recommendation" id="recommendation"></div>
+            <hr style="margin:16px 0; border:none; border-top:2px solid #e2e8f0;">
+            <div class="result-section" id="result-step1">
+                <h3>A. 庫内残存RB</h3>
+                <div class="formula-line" id="result-a"></div>
+            </div>
+            <div class="result-section" id="result-step2">
+                <h3>B. 14:00〜23:59に庫内になくてはいけない数</h3>
+                <div class="formula-line" id="result-b"></div>
+            </div>
+            <div class="result-section" id="result-step3">
+                <h3>C. 14:00〜翌4:30に入ってくるRB + 庫内にあるはずのRB</h3>
+                <div class="formula-line" id="result-c"></div>
+            </div>
+            <div class="result-section" id="result-step4">
+                <h3>D. 翌日に必要なRB数</h3>
+                <div class="formula-line" id="result-d"></div>
+            </div>
+            <div class="result-section" id="result-step5" style="border-left-color:#38a169;">
+                <h3>E. 翌10:00時点の庫内RB → 過剰数</h3>
+                <div class="formula-line" id="result-e"></div>
+            </div>
+        </div>
+
+        <!-- Main layout -->
+        <div class="grid-row" style="grid-template-columns: 2fr 3fr;">
+            <!-- Left: Step 1 庫内残存RB -->
+            <div class="card" style="align-self:stretch; display:flex; flex-direction:column;">
+                <div class="section-title">❶ 庫内残存RB（14:00時点で目視確認）</div>
+                <div style="flex:1; display:flex; flex-direction:column;">
+                    <div class="input-group">
+                        <label>Inductionエリア（MAX 150本）</label>
+                        <div class="inbound-calc">
+                            <div
+                                style="display:grid; grid-template-columns: 130px 70px 20px 70px 20px; align-items:center; gap:4px; width:fit-content;">
+                                <span
+                                    style="font-size:0.85rem; color:#4a5568; font-weight:500; white-space:nowrap;">1列約50本</span>
+                                <input type="number" id="inbound-per-row" min="0" max="50" value="" placeholder="本数"
+                                    style="width:70px; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem; text-align:center;">
+                                <span style="font-size:0.9rem; color:#4a5568; text-align:center;">×</span>
+                                <input type="number" id="inbound-num-rows" min="0" max="3" value="" placeholder="列数"
+                                    style="width:70px; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem; text-align:center;">
+                                <span style="font-size:0.9rem; color:#4a5568;">列</span>
+                            </div>
+                            <div
+                                style="display:grid; grid-template-columns: 130px 70px 20px 70px 20px; align-items:center; gap:4px; margin-top:8px; width:fit-content;">
+                                <span
+                                    style="font-size:0.85rem; color:#4a5568; font-weight:500; white-space:nowrap;">※端数</span>
+                                <span></span><span></span>
+                                <input type="number" id="inbound-extra" min="0" value="" placeholder="端数"
+                                    style="width:70px; padding:8px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem; text-align:center;">
+                                <span style="font-size:0.9rem; color:#4a5568;">本</span>
+                            </div>
+                        </div>
+                        <div class="inbound-subtotal" id="inbound-area-subtotal">Inductionエリア小計: 0 本</div>
+                    </div>
+                    <div class="input-group">
+                        <label for="jp-waki">JP脇（ProDP後ろ）</label>
+                        <input type="number" id="jp-waki" min="0" value="" placeholder="本数入力">
+                    </div>
+                    <div class="input-group">
+                        <label for="area-104">XPT置き場</label>
+                        <input type="number" id="area-104" min="0" value="" placeholder="本数入力">
+                    </div>
+                    <div class="input-group">
+                        <label for="yard">TDR Dock</label>
+                        <input type="number" id="yard" min="0" value="" placeholder="本数入力">
+                    </div>
+                    <div class="subtotal" id="current-subtotal">庫内残存RB合計: 0 本</div>
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; padding-top:20px;">
+                        <button class="calculate-btn" onclick="calculate()"
+                            style="margin-bottom:0; width:200px; height:200px; border-radius:16px; font-size:1.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; box-shadow:0 4px 15px rgba(49,130,206,0.3);">
+                            <span style="font-size:3rem;">📊</span>
+                            <span>計算する</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Steps 2〜5 stacked -->
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Step 2: 回収幹線CSV -->
+                <div class="card">
+                    <div class="section-title">❷ 回収幹線の予定表（CSV）— 当日14:00〜23:59 の空回収</div>
+                    <div>
+                        <p class="note" style="margin-bottom:8px;">
+                            📎 <a id="qs-link" href="#" target="_blank"
+                                style="color:#3182ce; text-decoration:underline;">QuickSightからCSVをダウンロード</a>
+                            <br>※ 発地発車日時・着地着車日時を「<span id="qs-date-guide" style="font-weight:600;"></span>」に設定してください
+                        </p>
+                        <div class="csv-upload-area" id="csv-drop-area">
+                            <input type="file" id="csv-file" accept=".csv">
+                            <div class="upload-icon">📄</div>
+                            <div class="upload-text">CSVファイルをドラッグ＆ドロップ またはクリックして選択</div>
+                            <div class="upload-hint">対応形式: .csv</div>
+                        </div>
+                        <details class="csv-format-info">
+                            <summary>📋 CSVフォーマットについて</summary>
+                            <pre>"planid","vrid","carrier","請求id","車格","発地","着地","発地着車時間",..."積載本数","更新日","ver"</pre>
+                        </details>
+                        <div class="csv-result" id="csv-result">
+                            <div class="csv-total" id="csv-total">回収予定合計: 0 本</div>
+                            <div style="max-height:200px; overflow-y:auto;">
+                                <table id="csv-table">
+                                    <thead>
+                                        <tr>
+                                            <th>VRID</th>
+                                            <th>発地着車時間</th>
+                                            <th>着地</th>
+                                            <th>積載本数</th>
+                                            <th>済</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="csv-table-body"></tbody>
+                                </table>
+                            </div>
+                            <p class="note" style="margin-top:6px;">※ 「済」チェック =
+                                既に完了した便（計算から除外）。荷物が乗っている便は空RBが生成されないためカウント不可。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: C3使用RB -->
+                <div class="card">
+                    <div class="section-title">❸ C3で使用するRB数</div>
+                    <div>
+                        <div class="input-group">
+                            <label for="c3-rb">C3 Pick使用RB本数</label>
+                            <input type="number" id="c3-rb" min="0" value="30" placeholder="30">
+                        </div>
+                        <p class="note">※ 固定値でもOK（デフォルト: 30本）</p>
+                    </div>
+                </div>
+
+                <!-- Step 4: NIT（14:00〜翌4:30） -->
+                <div class="card">
+                    <div class="section-title">❹ NIT（New Intake）14:00〜翌4:30</div>
+                    <div>
+                        <p class="note" style="margin-bottom:6px;">※ Inbound Dock CSVを読み込み → 14:00〜翌4:30の幹線数 × 22本で自動計算
+                        </p>
+                        <div class="csv-upload-area" id="intake-csv-drop-area">
+                            <input type="file" id="intake-csv-file" accept=".csv">
+                            <div class="upload-icon">📄</div>
+                            <div class="upload-text">Inbound Dock CSVをドラッグ＆ドロップ またはクリックして選択</div>
+                            <div class="upload-hint">対応形式: .csv</div>
+                        </div>
+                        <details class="csv-format-info">
+                            <summary>📋 CSVフォーマットについて</summary>
+                            <pre>Priority,Ranking,Load Type,...,Scheduled Arrival Time,...</pre>
+                        </details>
+                        <div class="csv-result" id="intake-csv-result">
+                            <div class="csv-total" id="intake-csv-total">NIT入荷: 0 本（22本 × 0幹線）</div>
+                            <div class="note" id="intake-date-info" style="margin-bottom:4px;"></div>
+                            <div style="max-height:250px; overflow-y:auto;">
+                                <table id="intake-csv-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Sort/Route</th>
+                                            <th>VR ID</th>
+                                            <th>Scheduled Arrival</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="intake-csv-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: XPT戻り + C2 Pick -->
+                <div class="card">
+                    <div class="section-title">❺ XPT戻りRB + C2 Pick使用分</div>
+                    <div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>XPTからの戻りRB（翌朝6〜8時着分）</label>
+                                <input type="number" id="xpt-return" min="0" value="110" placeholder="110">
+                                <p class="note">※ 翌朝に届く分のみ。概算固定OK</p>
+                            </div>
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>C2 Pick使用RB本数</label>
+                                <input type="number" id="c2-pick" min="0" value="120" placeholder="120">
+                                <p class="note">※ PickCSVのB列空白削除→MX,AMX,BMXで絞る</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 6: 翌日に必要なRB -->
+                <div class="card">
+                    <div class="section-title">❻ 翌日に必要なRB数</div>
+                    <div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>翌日0:00〜10:00の回収分</label>
+                                <input type="number" id="next-day-collection" min="0" value="80" placeholder="80">
+                                <p class="note">※ 10時設定（C2開始でも空RBがすぐ生成されないため）</p>
+                            </div>
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>C1 Pick使用RB本数</label>
+                                <input type="number" id="c1-pick" min="0" value="250" placeholder="250">
+                                <p class="note">※ PickCSVのB列空白削除→CX,ACX,BCXで絞る（前日と大差ない前提）</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 7: C2分NIT + 翌日回収 -->
+                <div class="card">
+                    <div class="section-title">❼ 翌日10:00以降の加減（C2 NIT / 回収）</div>
+                    <div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>C2分NIT（4:30〜12:00）台数</label>
+                                <input type="number" id="c2-nit-count" min="0" value="4" placeholder="4">
+                                <p class="note">※ × 22本で計算</p>
+                            </div>
+                            <div class="input-group" style="flex:1; min-width:130px;">
+                                <label>10:00〜14:00の空回収本数</label>
+                                <input type="number" id="morning-collection" min="0" value="160" placeholder="160">
+                                <p class="note">※ 翌日の予測値（当日と同程度の便が来る前提: 80本×2便 = 160本）。翌日データ未確定のため固定</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buffer -->
+                <div class="card">
+                    <div class="section-title">❽ バッファ設定</div>
+                    <div>
+                        <div class="input-group">
+                            <label>庫内残しバッファ</label>
+                            <input type="number" id="buffer" min="0" value="80" placeholder="80">
+                        </div>
+                        <p class="note">※ TPD4緊急増便対応 + NIT 22本未満リスク考慮（デフォルト: 80本）</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="reset-btn" onclick="resetAll()">🔄 リセット</button>
+
+        <script>
+            // === Global state ===
+            let csvTotal = 0;
+            let csvTrunkData = [];
+            let intakeTotal = 0;
+            let intakeCount = 0;
+            let lastIntakeText = '';
+            let lastIntakeRows = [];
+
+            // === QuickSight date guide ===
+            (function () {
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const fmt = (dt) => {
+                    const y = dt.getFullYear();
+                    const m = String(dt.getMonth() + 1).padStart(2, '0');
+                    const d = String(dt.getDate()).padStart(2, '0');
+                    return `${y}/${m}/${d}`;
+                };
+                document.getElementById('qs-date-guide').textContent = `${fmt(today)} 〜 ${fmt(tomorrow)}`;
+                const baseUrl = 'https://us-east-1.quicksight.aws.amazon.com/sn/accounts/764946308314/dashboards/5e1e1e73-29e3-4786-92b8-3b49092fdd62/sheets/5e1e1e73-29e3-4786-92b8-3b49092fdd62_21ef646c-5706-4905-9a98-d3bb6682dd6b?sso_login=true';
+                document.getElementById('qs-link').href = baseUrl;
+            })();
+
+            // === Induction area inputs ===
+            const inboundPerRow = document.getElementById('inbound-per-row');
+            const inboundNumRows = document.getElementById('inbound-num-rows');
+
+            inboundPerRow.addEventListener('input', function () {
+                if (parseInt(this.value) > 50) this.value = 50;
+                updateInboundAreaSubtotal(); updateSubtotal();
+            });
+            inboundNumRows.addEventListener('input', function () {
+                if (parseInt(this.value) > 3) this.value = 3;
+                updateInboundAreaSubtotal(); updateSubtotal();
+            });
+
+            function getInboundAreaTotal() {
+                const perRow = Math.min(parseInt(inboundPerRow.value) || 0, 50);
+                const numRows = Math.min(parseInt(inboundNumRows.value) || 0, 3);
+                const extra = parseInt(document.getElementById('inbound-extra').value) || 0;
+                return perRow * numRows + extra;
+            }
+            function updateInboundAreaSubtotal() {
+                document.getElementById('inbound-area-subtotal').textContent = `Inductionエリア小計: ${getInboundAreaTotal()} 本`;
+            }
+
+            const currentInputs = ['jp-waki', 'area-104', 'yard'];
+            currentInputs.forEach(id => { document.getElementById(id).addEventListener('input', updateSubtotal); });
+            document.getElementById('inbound-extra').addEventListener('input', function () { updateInboundAreaSubtotal(); updateSubtotal(); });
+
+            function updateSubtotal() {
+                let total = getInboundAreaTotal();
+                currentInputs.forEach(id => { total += parseInt(document.getElementById(id).value) || 0; });
+                document.getElementById('current-subtotal').textContent = `庫内残存RB合計: ${total} 本`;
+            }
+
+            // === CSV file handling (Step 2: 回収幹線) ===
+            const csvDropArea = document.getElementById('csv-drop-area');
+            const csvFileInput = document.getElementById('csv-file');
+            csvDropArea.addEventListener('dragover', (e) => { e.preventDefault(); csvDropArea.classList.add('dragover'); });
+            csvDropArea.addEventListener('dragleave', () => { csvDropArea.classList.remove('dragover'); });
+            csvDropArea.addEventListener('drop', (e) => {
+                e.preventDefault(); csvDropArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.name.endsWith('.csv')) parseCSV(file);
+            });
+            csvFileInput.addEventListener('change', (e) => { if (e.target.files[0]) parseCSV(e.target.files[0]); });
+
+            function parseCSV(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => processCSVText(e.target.result);
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            function parseCSVLine(line) {
+                const result = []; let current = ''; let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const ch = line[i];
+                    if (ch === '"') { if (inQuotes && i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; } }
+                    else if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
+                    else { current += ch; }
+                }
+                result.push(current.trim()); return result;
+            }
+
+            function processCSVText(text) {
+                const lines = text.trim().split(/\r?\n/);
+                if (lines.length < 2) { alert('CSVファイルにデータがありません。'); return; }
+                const headers = parseCSVLine(lines[0]);
+                let loadCountIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('積載本数'));
+                if (loadCountIdx === -1) loadCountIdx = 12;
+                let vridCsvIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('vrid'));
+                if (vridCsvIdx === -1) vridCsvIdx = 1;
+                let departTimeIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('発地着車時間'));
+                if (departTimeIdx === -1) departTimeIdx = 7;
+                let destIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('着地'));
+                if (destIdx === -1) destIdx = 6;
+
+                const tbody = document.getElementById('csv-table-body'); tbody.innerHTML = ''; csvTotal = 0;
+                csvTrunkData = [];
+                const csvRows = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim(); if (!line) continue;
+                    const cols = parseCSVLine(line);
+                    const count = parseInt(cols[loadCountIdx]) || 0;
+                    const departTime = cols[departTimeIdx] || '';
+                    const dest = cols[destIdx] || '';
+                    const vrid = cols[vridCsvIdx] || '';
+                    const timeMatch = departTime.match(/\d{4}-\d{2}-\d{2}\s(\d{2}:\d{2})/);
+                    const time = timeMatch ? timeMatch[1] : null;
+                    // 14:00以降のみcsvTotalに加算
+                    if (time && time >= '14:00') { csvTotal += count; }
+                    csvRows.push({ vrid, departTime, dest, count, sortKey: departTime, time: time });
+                }
+                csvRows.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+                csvTrunkData = csvRows.filter(r => r.time).map(r => ({ time: r.time, dest: r.dest, load: r.count }));
+
+                for (const item of csvRows) {
+                    const row = document.createElement('tr');
+                    const isBefore14 = item.time && item.time < '14:00';
+                    row.innerHTML = `<td>${escapeHtml(item.vrid)}</td><td>${escapeHtml(item.departTime)}</td><td>${escapeHtml(item.dest)}</td><td><input type="number" class="csv-load-input" value="${item.count}" min="0" style="width:60px; padding:4px 8px; border:1px solid #cbd5e0; border-radius:4px; text-align:center; font-size:0.85rem;"> 本</td><td style="text-align:center;"><input type="checkbox" class="csv-done-check" style="width:18px; height:18px; cursor:pointer;"${isBefore14 ? ' checked' : ''}></td>`;
+                    if (isBefore14) { row.style.textDecoration = 'line-through'; row.style.color = '#e53e3e'; row.style.opacity = '0.5'; }
+                    tbody.appendChild(row);
+                }
+                document.querySelectorAll('.csv-load-input').forEach(input => { input.addEventListener('input', updateCsvTotal); });
+                document.querySelectorAll('.csv-done-check').forEach(cb => {
+                    cb.addEventListener('change', function () {
+                        const row = this.closest('tr');
+                        if (this.checked) { row.style.textDecoration = 'line-through'; row.style.color = '#e53e3e'; row.style.opacity = '0.5'; }
+                        else { row.style.textDecoration = ''; row.style.color = ''; row.style.opacity = ''; }
+                        updateCsvTotal();
+                    });
+                });
+                document.getElementById('csv-total').textContent = `回収予定合計（14:00以降）: ${csvTotal} 本`;
+                document.getElementById('csv-result').classList.add('show');
+                csvDropArea.querySelector('.upload-text').innerHTML = `✅ CSV読み込み完了（${lines.length - 1}便 / 合計 ${csvTotal}本）`;
+                if (lastIntakeText) processIntakeCSVText(lastIntakeText);
+            }
+
+            function updateCsvTotal() {
+                csvTotal = 0;
+                const inputs = document.querySelectorAll('.csv-load-input');
+                const checks = document.querySelectorAll('.csv-done-check');
+                inputs.forEach((input, idx) => {
+                    const val = parseInt(input.value) || 0;
+                    const isChecked = checks[idx] ? checks[idx].checked : false;
+                    // 14:00以降の便のみカウント
+                    const isAfter14 = idx < csvTrunkData.length && csvTrunkData[idx].time >= '14:00';
+                    if (!isChecked && isAfter14) { csvTotal += val; }
+                    if (idx < csvTrunkData.length) { csvTrunkData[idx].load = (isChecked || !isAfter14) ? 0 : val; }
+                });
+                document.getElementById('csv-total').textContent = `回収予定合計（14:00以降）: ${csvTotal} 本`;
+            }
+
+            function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+            // === Intake CSV (Step 4: NIT) ===
+            const intakeCsvDropArea = document.getElementById('intake-csv-drop-area');
+            const intakeCsvFileInput = document.getElementById('intake-csv-file');
+            intakeCsvDropArea.addEventListener('dragover', (e) => { e.preventDefault(); intakeCsvDropArea.classList.add('dragover'); });
+            intakeCsvDropArea.addEventListener('dragleave', () => { intakeCsvDropArea.classList.remove('dragover'); });
+            intakeCsvDropArea.addEventListener('drop', (e) => {
+                e.preventDefault(); intakeCsvDropArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.name.endsWith('.csv')) parseIntakeCSV(file);
+            });
+            intakeCsvFileInput.addEventListener('change', (e) => { if (e.target.files[0]) parseIntakeCSV(e.target.files[0]); });
+
+            function parseIntakeCSV(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => processIntakeCSVText(e.target.result);
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            function processIntakeCSVText(text) {
+                lastIntakeText = text;
+                const lines = text.trim().split(/\r?\n/);
+                if (lines.length < 2) { alert('CSVファイルにデータがありません。'); return; }
+                const headers = parseCSVLine(lines[0]);
+                let arrivalIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('Scheduled Arrival Time'));
+                if (arrivalIdx === -1) arrivalIdx = 18;
+                let routeIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('Sort/Route'));
+                if (routeIdx === -1) routeIdx = 5;
+                let vridIdx = headers.findIndex(h => h.replace(/["\uFEFF]/g, '').includes('VR ID'));
+                if (vridIdx === -1) vridIdx = 7;
+
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const todayStr = String(today.getDate()).padStart(2, '0') + '-' + months[today.getMonth()] + '-' + String(today.getFullYear()).slice(-2);
+                const tomorrowStr = String(tomorrow.getDate()).padStart(2, '0') + '-' + months[tomorrow.getMonth()] + '-' + String(tomorrow.getFullYear()).slice(-2);
+
+                // Collect all rows for today and tomorrow (14:00 today → 04:30 tomorrow)
+                // Also count C2 NIT (tomorrow 04:30 → 12:00)
+                const intakeRows = [];
+                let c2NitCount = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim(); if (!line) continue;
+                    const cols = parseCSVLine(line);
+                    const arrivalTime = (cols[arrivalIdx] || '').trim();
+                    if (!arrivalTime || arrivalTime === '-') continue;
+                    const datePart = arrivalTime.split(' ')[0];
+                    const timePart = arrivalTime.split(' ')[1] || '00:00';
+
+                    let include = false;
+                    if (datePart === todayStr && timePart >= '14:00') {
+                        include = true; // Today 14:00+
+                    } else if (datePart === tomorrowStr && timePart <= '04:30') {
+                        include = true; // Tomorrow until 04:30
+                    }
+
+                    // Count C2 NIT: tomorrow 04:30 ~ 12:00
+                    if (datePart === tomorrowStr && timePart > '04:30' && timePart <= '12:00') {
+                        c2NitCount++;
+                    }
+
+                    if (include) {
+                        intakeRows.push({
+                            route: (cols[routeIdx] || '').trim(),
+                            vrid: (cols[vridIdx] || '').trim(),
+                            arrivalTime: arrivalTime,
+                            sortKey: (datePart === tomorrowStr ? '1_' : '0_') + timePart,
+                            timePart: timePart,
+                            datePart: datePart
+                        });
+                    }
+                }
+
+                // Auto-fill C2 NIT count in Step 7
+                document.getElementById('c2-nit-count').value = c2NitCount;
+
+                intakeRows.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+                const tbody = document.getElementById('intake-csv-table-body'); tbody.innerHTML = '';
+                intakeCount = intakeRows.length;
+
+                for (const item of intakeRows) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${escapeHtml(item.route)}</td><td>${escapeHtml(item.vrid)}</td><td>${escapeHtml(item.arrivalTime)}</td>`;
+                    tbody.appendChild(row);
+                }
+
+                intakeTotal = 22 * intakeCount;
+                lastIntakeRows = intakeRows;
+                document.getElementById('intake-csv-total').textContent = `NIT入荷: ${intakeTotal} 本（22本 × ${intakeCount}幹線）`;
+                document.getElementById('intake-date-info').textContent = `対象: ${todayStr} 14:00 〜 ${tomorrowStr} 04:30`;
+                document.getElementById('intake-csv-result').classList.add('show');
+                intakeCsvDropArea.querySelector('.upload-text').innerHTML = `✅ CSV読み込み完了（${intakeCount}幹線）`;
+            }
+
+            // === MAIN CALCULATION ===
+            function calculate() {
+                // A. 庫内残存RB
+                const inductionArea = getInboundAreaTotal();
+                const otherTotal = currentInputs.reduce((sum, id) => sum + (parseInt(document.getElementById(id).value) || 0), 0);
+                const A_currentRB = inductionArea + otherTotal;
+
+                // B. 14:00〜23:59に庫内になくてはいけない数
+                // = 空回収の本数（CSV未チェック分）+ C3使用RB
+                const B_collection = csvTotal; // 「済」チェック済みは既にupdateCsvTotalで除外
+                const B_c3 = parseInt(document.getElementById('c3-rb').value) || 0;
+                const B_required = B_collection + B_c3;
+
+                // C. 入ってくるRB + 庫内にあるはずのRB
+                // = NIT(14:00〜4:30) + XPT戻り + C2 Pick使用分
+                const C_nit = intakeTotal; // 22 × intakeCount
+                const C_xpt = parseInt(document.getElementById('xpt-return').value) || 0;
+                const C_c2pick = parseInt(document.getElementById('c2-pick').value) || 0;
+                const C_incoming = C_nit + C_xpt + C_c2pick;
+
+                // D. 翌日に必要なRB数
+                // = 翌日0:00〜10:00の回収分 + C1 Pick使用分
+                const D_nextCollection = parseInt(document.getElementById('next-day-collection').value) || 0;
+                const D_c1pick = parseInt(document.getElementById('c1-pick').value) || 0;
+                const D_required = D_nextCollection + D_c1pick;
+
+                // 翌10:00時点の庫内RB数
+                // = A - B + C - D
+                const rb_at_10 = A_currentRB - B_required + C_incoming - D_required;
+
+                // E. 翌10:00以降の加減
+                const E_c2nit = (parseInt(document.getElementById('c2-nit-count').value) || 0) * 22;
+                const E_morningCollection = parseInt(document.getElementById('morning-collection').value) || 0;
+                const E_adjustment = E_c2nit - E_morningCollection;
+
+                // 翌14:00時点の過剰RB
+                const rb_at_14 = rb_at_10 + E_adjustment;
+
+                // バッファ差引
+                const buffer = parseInt(document.getElementById('buffer').value) || 0;
+                const excessRB = rb_at_14 - buffer;
+
+                // 増便可能数（1便 = 80本で計算）
+                const additionalTrucks = Math.floor(excessRB / 80);
+
+                // === Display results ===
+                document.getElementById('result-a').innerHTML =
+                    `庫内残存RB: <strong>${A_currentRB}本</strong>`;
+
+                document.getElementById('result-b').innerHTML =
+                    `空回収（14:00〜23:59）: <strong>${B_collection}本</strong> + C3使用: <strong>${B_c3}本</strong> = <strong>${B_required}本</strong>`;
+
+                document.getElementById('result-c').innerHTML =
+                    `NIT（14:00〜翌4:30）: <strong>${C_nit}本</strong>（22本×${intakeCount}台）<br>` +
+                    `+ XPT戻り（翌朝着分）: <strong>${C_xpt}本</strong> + C2 Pick: <strong>${C_c2pick}本</strong> = <strong>${C_incoming}本</strong>`;
+
+                document.getElementById('result-d').innerHTML =
+                    `翌日回収（0:00〜10:00）: <strong>${D_nextCollection}本</strong> + C1 Pick: <strong>${D_c1pick}本</strong> = <strong>${D_required}本</strong>`;
+
+                document.getElementById('result-e').innerHTML =
+                    `翌10:00時点: ${A_currentRB} − ${B_required} + ${C_incoming} − ${D_required} = <strong>${rb_at_10}本</strong><br>` +
+                    `+ C2 NIT（4:30〜12:00）: <strong>${E_c2nit}本</strong> − 回収（翌日10:00〜14:00）: <strong>${E_morningCollection}本</strong><br>` +
+                    `<span style="font-size:0.75rem; color:#718096;">※ 回収は翌日の予測値（当日と同程度の便が来る前提: 80本×2便）</span><br>` +
+                    `= 翌14:00時点: <strong>${rb_at_14}本</strong><br>` +
+                    `− バッファ: <strong>${buffer}本</strong> = 過剰: <strong>${excessRB}本</strong>`;
+
+                // Main result display
+                const resultValue = document.getElementById('result-value-main');
+                const resultNumber = document.getElementById('result-number-main');
+                resultNumber.textContent = excessRB + ' 本';
+
+                if (excessRB > 0) {
+                    resultValue.className = 'result-value warning';
+                } else {
+                    resultValue.className = 'result-value safe';
+                }
+
+                // Recommendation
+                const rec = document.getElementById('recommendation');
+                if (additionalTrucks >= 1) {
+                    rec.className = 'recommendation increase';
+                    rec.innerHTML = `🚛 増便推奨: <strong>${additionalTrucks}便</strong>（1便80本 × ${additionalTrucks} = ${additionalTrucks * 80}本回収）`;
+                } else if (excessRB > 0) {
+                    rec.className = 'recommendation increase';
+                    rec.innerHTML = `⚠ 過剰${excessRB}本（1便分未満のため増便判断は要確認）`;
+                } else {
+                    rec.className = 'recommendation ok';
+                    rec.innerHTML = `✅ 現状の回収便で問題なし`;
+                }
+
+                document.getElementById('result-card').classList.add('show');
+                document.getElementById('result-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // === Reset ===
+            function resetAll() {
+                inboundPerRow.value = ''; inboundNumRows.value = '';
+                document.getElementById('inbound-extra').value = '';
+                currentInputs.forEach(id => { document.getElementById(id).value = ''; });
+                document.getElementById('c3-rb').value = '30';
+                document.getElementById('xpt-return').value = '110';
+                document.getElementById('c2-pick').value = '120';
+                document.getElementById('next-day-collection').value = '80';
+                document.getElementById('c1-pick').value = '250';
+                document.getElementById('c2-nit-count').value = '4';
+                document.getElementById('morning-collection').value = '160';
+                document.getElementById('buffer').value = '80';
+                csvTotal = 0; intakeTotal = 0; intakeCount = 0;
+                lastIntakeText = ''; lastIntakeRows = [];
+                document.getElementById('csv-result').classList.remove('show');
+                document.getElementById('csv-table-body').innerHTML = '';
+                document.getElementById('csv-file').value = '';
+                document.getElementById('intake-csv-result').classList.remove('show');
+                document.getElementById('intake-csv-table-body').innerHTML = '';
+                document.getElementById('intake-csv-file').value = '';
+                document.getElementById('intake-date-info').textContent = '';
+                csvDropArea.querySelector('.upload-text').innerHTML = 'CSVファイルをドラッグ＆ドロップ またはクリックして選択';
+                intakeCsvDropArea.querySelector('.upload-text').innerHTML = 'Inbound Dock CSVをドラッグ＆ドロップ またはクリックして選択';
+                document.getElementById('result-card').classList.remove('show');
+                updateInboundAreaSubtotal(); updateSubtotal();
+            }
+        </script>
+</body>
+
+</html>
